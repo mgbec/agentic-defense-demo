@@ -1,0 +1,8 @@
+permit (
+  principal == ${principal},
+  action == ${action},
+  resource == ${resource}
+)
+when {
+  context.input.amount <= ${refund_limit}
+};

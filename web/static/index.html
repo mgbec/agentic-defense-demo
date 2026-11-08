@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="demo-token" content="__DEMO_TOKEN__">
+  <title>Defense in depth for agents</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Defense in depth for an AI agent</h1>
+    <p id="mode" class="mode" role="status">Connecting...</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tab-try" aria-controls="panel-try" aria-selected="true">Try it</button>
+    <button role="tab" id="tab-board" aria-controls="panel-board" aria-selected="false" tabindex="-1">Scoreboard</button>
+    <button role="tab" id="tab-how" aria-controls="panel-how" aria-selected="false" tabindex="-1">How it works</button>
+  </nav>
+
+  <main>
+    <!-- ============================ Try it ============================ -->
+    <section id="panel-try" role="tabpanel" aria-labelledby="tab-try">
+      <fieldset class="profiles">
+        <legend>Defense profile (each one adds a layer to the one before)</legend>
+        <div id="profile-cards" class="cards"></div>
+      </fieldset>
+
+      <div class="grid2">
+        <div>
+          <label for="attack-pick">Start from a prepared message</label>
+          <select id="attack-pick"><option value="">(write your own)</option></select>
+          <p id="attack-explain" class="muted"></p>
+
+          <label for="prompt">Message to the support assistant</label>
+          <textarea id="prompt" rows="6" maxlength="4000"></textarea>
+          <div class="row">
+            <button id="send" class="primary" type="button">Send</button>
+            <span id="chat-status" class="muted" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div>
+          <h2>Result</h2>
+          <div id="chips" class="chips" aria-label="Layers that stepped in"></div>
+          <pre id="reply" class="reply" tabindex="0">Nothing sent yet.</pre>
+          <h3>What each layer decided</h3>
+          <ol id="timeline" class="timeline"></ol>
+          <h3>Tool calls</h3>
+          <div id="tools"></div>
+        </div>
+      </div>
+
+      <section class="sink">
+        <h2>What really happened (the tool "sink")</h2>
+        <p class="muted">Nothing is ever sent or paid. Side-effecting tools only record what they would have done.</p>
+        <div class="row">
+          <button id="sink-refresh" type="button">Refresh</button>
+          <button id="sink-clear" type="button">Clear</button>
+          <span id="sink-status" class="muted" role="status" aria-live="polite"></span>
+        </div>
+        <div class="grid2">
+          <div><h3>Emails recorded</h3><div id="sink-outbox"></div></div>
+          <div><h3>Refunds recorded</h3><div id="sink-refunds"></div></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============================ Scoreboard ============================ -->
+    <section id="panel-board" role="tabpanel" aria-labelledby="tab-board" hidden>
+      <div class="controls">
+        <fieldset>
+          <legend>Run attacks</legend>
+          <label class="inline"><input type="radio" name="scope" value="quick" checked> Quick set</label>
+          <label class="inline"><input type="radio" name="scope" value="all"> All attacks</label>
+          <label class="inline" for="repeats">Repeats</label>
+          <input id="repeats" type="number" min="1" max="20" value="3">
+          <span id="profile-checks" class="inline"></span>
+          <button id="run" class="primary" type="button">Run</button>
+          <button id="stop" type="button" hidden>Stop</button>
+        </fieldset>
+        <div class="row">
+          <label for="saved">Or open a saved run</label>
+          <select id="saved"><option value="">(choose)</option></select>
+          <button id="load" type="button">Open</button>
+        </div>
+      </div>
+
+      <div id="board-msg" class="muted" role="status" aria-live="polite"></div>
+      <div id="progress-wrap" hidden>
+        <progress id="progress" max="100" value="0" aria-label="Run progress"></progress>
+        <span id="progress-text"></span>
+      </div>
+      <div id="note" class="banner" hidden></div>
+      <div id="warn" class="banner warn" hidden></div>
+
+      <div id="board" hidden>
+        <p class="muted">
+          Each cell is <em>outcomes / valid runs</em>. For attacks and controls an outcome is harm happening
+          (lower is better). For benign tasks it is the task completing (higher is better).
+          Click a cell for details.
+        </p>
+        <div class="tablewrap">
+          <table id="matrix" class="matrix"></table>
+        </div>
+        <h3>What stepped in when harm did not happen</h3>
+        <div id="stepped"></div>
+        <section id="detail" class="detail" tabindex="-1" aria-live="polite"></section>
+      </div>
+    </section>
+
+    <!-- ============================ How it works ============================ -->
+    <section id="panel-how" role="tabpanel" aria-labelledby="tab-how" hidden>
+      <h2>The agent</h2>
+      <p>A customer-support assistant with four tools: search the knowledge base, look up a customer, send an email and issue a refund.
+         It runs on Amazon Bedrock AgentCore Runtime. Its tools sit behind AgentCore Gateway.</p>
+
+      <h2>The layers</h2>
+      <ol class="layers">
+        <li><strong>Model and prompt only (none).</strong> The baseline. The model's own judgment is the only protection.</li>
+        <li><strong>+ Bedrock Guardrails (guardrail).</strong> Screens the user message for prompt attacks and harmful content, and masks SSNs and card numbers in both the message and the reply. It sees text, not intent.</li>
+        <li><strong>+ Isolation (isolation).</strong> Retrieved documents are screened and fenced off as untrusted data, and the system prompt is hardened. It reduces risk but cannot guarantee anything.</li>
+        <li><strong>+ Gateway policy (policy).</strong> Cedar rules on the gateway decide whether a tool call is allowed at all (for example, refunds over a limit, or email to an outside domain). This is enforced outside the model, so the model cannot talk its way past it.</li>
+      </ol>
+
+      <h2>Reading the scoreboard</h2>
+      <ul>
+        <li><strong>Attack</strong>: should succeed against a weak setup. The number you want to see fall is the harm rate.</li>
+        <li><strong>Control</strong>: obvious attacks that the model already resists. They show where the baseline is already fine.</li>
+        <li><strong>Benign</strong>: legitimate requests. They measure false positives, because a defense that blocks real work is not free.</li>
+        <li>Outcomes are decided by a deterministic check (what the tools recorded, or a planted canary string), never by another model.</li>
+        <li>Runs that crash are excluded from the rates, not counted as a defense holding.</li>
+      </ul>
+
+      <h2>Honest limitations</h2>
+      <ul>
+        <li>Model behavior is random. With a few repeats per cell the numbers are noisy. They illustrate, they do not prove.</li>
+        <li>The attack set is small and written for this demo. Passing it says nothing about attacks that are not in it.</li>
+        <li>The tools are simulated. The policy layer is real, but the data and side effects are not.</li>
+        <li>This page runs on your machine with your AWS credentials. It listens on localhost only. Do not expose it.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

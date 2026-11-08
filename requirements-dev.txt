@@ -1,0 +1,8 @@
+# Local development, tests, the red-team runner and the web page.
+# Includes the agent's own pinned dependencies so its wiring can be tested too.
+-r agent/requirements.txt
+PyYAML==6.0.3
+cedarpy==4.12.2
+moto[dynamodb]==5.2.5
+pytest==9.0.3
+ruff==0.11.10

@@ -1,0 +1,31 @@
+[project]
+name = "agentic-defense-demo"
+version = "0.1.0"
+description = "Defense in depth for LLM and agentic workflows on AWS, with a red-team scoreboard"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# Rules are listed explicitly so a ruff upgrade cannot silently change what is enforced.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["dist", "infra/.terraform"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["common", "defenses", "redteam"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+# agent/ is the root of the runtime zip, so its modules import as top-level names.
+pythonpath = [
+  ".",
+  "agent",
+  "tools/search_kb",
+  "tools/lookup_customer",
+  "tools/send_email",
+  "tools/issue_refund",
+]

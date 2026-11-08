@@ -1,0 +1,12 @@
+permit (
+  principal == ${principal},
+  action == ${action},
+  resource == ${resource}
+)
+when {
+  context.input.to like "*@${email_domain}" &&
+  !(context.input.to like "*@*@*") &&
+  !(context.input.to like "* *") &&
+  !(context.input.to like "*,*") &&
+  !(context.input.to like "*;*")
+};
