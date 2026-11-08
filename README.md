@@ -100,6 +100,33 @@ Nova Lite is priced per token and each agent run is a handful of short calls, so
 
 It holds your AWS credentials and can spend money, so it binds to `127.0.0.1` only, checks the `Host` and `Origin` headers, requires a per-launch token on every POST, serves a strict Content-Security-Policy, limits body size and never inserts model text as HTML. Do not expose it beyond your machine.
 
+## Before you deploy: security checklist
+
+This stack includes an unguarded gateway and an agent that is meant to be manipulated. Treat it as a demo.
+
+**Do these before `terraform apply`**
+
+- [ ] **Use a sandbox account and short-lived credentials** (SSO or an assumed role), not a long-lived IAM user key and not a production account.
+- [ ] **Set an AWS Budget alert.** Nothing in this repo caps spend except the web page's 600-run limit per job and the agent's limit of six tool calls per request. The Terraform does not create a budget.
+- [ ] **Narrow the model permission.** The runtime role in `infra/runtime.tf` may invoke any foundation model (`foundation-model/*`). Restrict it to the model in `var.model_id`.
+- [ ] **Give the presenter's machine its own role.** The web page and `python -m redteam` use your current AWS credentials and can spend money. Use a role that can only invoke this one runtime and read, write and delete this one DynamoDB table. The Terraform does not create this role.
+
+**Know about these**
+
+- The `open` gateway has no policy engine on purpose, and the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
+- Both gateways use `exception_level = "DEBUG"`, which returns detailed errors to callers. Production gateways should not.
+- The runtime uses `network_mode = "PUBLIC"`, so a hijacked agent could reach the internet. Its role is narrow and holds no secrets. For stricter setups, use VPC mode with limited egress.
+- Inbound calls to the runtime should be IAM (SigV4) authorized, because the Terraform configures no other authorizer. Confirm this in the console after the first apply.
+- Not hardened, because the data is fake: no TLS-only bucket policy, no DynamoDB point-in-time recovery or customer-managed key, and the broad AWS-managed Lambda logging policy.
+- Reserved Lambda concurrency is not set. New accounts often have a low concurrency quota, and setting it can make the apply fail.
+
+**If you fork or publish this repo**
+
+- Turn on secret scanning and push protection.
+- Add Dependabot for pip, Terraform and GitHub Actions. The agent's dependencies are pinned, so they will not update on their own.
+- Pin the workflow actions to commit SHAs and require CI before merging to `main`.
+- Never commit Terraform state or `*.tfvars`. Both are in `.gitignore`.
+
 ## What is verified, and what is not
 
 Verified locally (CI runs the same checks):
