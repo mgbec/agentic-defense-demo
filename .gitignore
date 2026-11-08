@@ -22,3 +22,6 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Personal writing, kept local
+docs/ARTICLE.md
