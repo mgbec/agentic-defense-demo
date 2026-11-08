@@ -33,3 +33,8 @@ output "gateway_url_guarded" {
 output "model_id" {
   value = var.model_id
 }
+
+output "presenter_policy_arn" {
+  description = "Attach this to the role or user that runs the web page and red-team runner."
+  value       = aws_iam_policy.presenter.arn
+}

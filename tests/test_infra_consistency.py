@@ -69,3 +69,24 @@ def test_the_runtime_gets_every_variable_the_agent_reads():
     for name in ("MODEL_ID", "GUARDRAIL_ID", "GUARDRAIL_VERSION", "GATEWAY_URL_OPEN",
                  "GATEWAY_URL_GUARDED"):
         assert re.search(rf"^\s+{name}\s+=", RUNTIME_TF, re.MULTILINE), name
+
+
+def test_the_runtime_may_invoke_only_the_configured_model():
+    assert "foundation-model/*" not in RUNTIME_TF
+    assert "foundation-model/${var.model_id}" in RUNTIME_TF
+
+
+def test_the_presenter_policy_is_narrow_and_covers_what_the_sink_code_calls():
+    security = (INFRA / "security.tf").read_text()
+    sink_code = (Path(__file__).resolve().parent.parent / "common" / "sink.py").read_text()
+    # Whatever the runner/web page do against DynamoDB must be permitted, and nothing more.
+    assert "_table().query(" in sink_code and "_table().delete_item(" in sink_code
+    assert '["dynamodb:Query", "dynamodb:DeleteItem"]' in security
+    assert '"*"' not in security.split('data "aws_iam_policy_document" "presenter"', 1)[1].split(
+        'resource "aws_iam_policy"', 1)[0]
+
+
+def test_the_budget_is_only_created_when_an_email_is_given():
+    block = VARIABLES_TF.split('variable "budget_alert_email"', 1)[1]
+    assert 'default     = ""' in block.split("}\n", 1)[0]
+    assert 'count = var.budget_alert_email == "" ? 0 : 1' in (INFRA / "security.tf").read_text()

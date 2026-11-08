@@ -63,9 +63,11 @@ data "aws_iam_policy_document" "runtime_trust" {
 
 data "aws_iam_policy_document" "runtime_permissions" {
   statement {
-    sid       = "InvokeTheModel"
-    actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-    resources = ["arn:aws:bedrock:*::foundation-model/*"]
+    sid     = "InvokeTheModel"
+    actions = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    # Only the configured model. If you switch to a model that needs a cross-region inference
+    # profile, add that profile's ARN here too (the call is authorized against both).
+    resources = ["arn:aws:bedrock:${var.region}::foundation-model/${var.model_id}"]
   }
 
   statement {

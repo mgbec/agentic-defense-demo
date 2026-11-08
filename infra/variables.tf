@@ -55,3 +55,15 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+
+variable "budget_limit_usd" {
+  description = "Monthly spend (whole USD) for the account-wide budget alert. Only used when budget_alert_email is set."
+  type        = number
+  default     = 10
+}
+
+variable "budget_alert_email" {
+  description = "Email address to warn when spending approaches budget_limit_usd. Leave empty to skip creating a budget. The budget covers the whole account, not just this stack."
+  type        = string
+  default     = ""
+}

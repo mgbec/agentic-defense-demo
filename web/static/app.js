@@ -208,7 +208,7 @@ function sinkTable(rows) {
   for (const row of rows) for (const k of Object.keys(row)) if (!skip.has(k) && !columns.includes(k)) columns.push(k);
   const cell = (k, v) => {
     if (v == null) return "";
-    if (k === "ts" && typeof v === "number") return new Date(v * 1000).toLocaleTimeString();
+    if (k === "ts" && typeof v === "number") return new Date(v).toLocaleTimeString();
     return typeof v === "object" ? JSON.stringify(v) : String(v);
   };
   return table(columns, rows.map((r) => columns.map((k) => cell(k, r[k]))));

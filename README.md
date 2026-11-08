@@ -65,13 +65,13 @@ The offline scoreboard is invented sample data, and the page says so. It cannot 
 python scripts/build.py           # writes dist/agent.zip and dist/tools/*.zip (arm64 wheels via uv, no Docker)
 cd infra
 terraform init
-terraform plan                    # read it: about 46 resources
+terraform plan                    # read it: about 47 resources (48 with a budget)
 terraform apply
 ```
 
 Region is `us-east-1` and the model is `amazon.nova-lite-v1:0`; both are Terraform variables.
 
-The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, and `bedrock-agentcore:InvokeGateway` on the guarded gateway. Policy creation validates the Cedar against the live gateway.
+To get a spending alert, add `-var budget_alert_email=you@example.com`. The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, and `bedrock-agentcore:InvokeGateway` on the guarded gateway. Policy creation validates the Cedar against the live gateway.
 
 ### 3. Attack it
 
@@ -107,9 +107,10 @@ This stack includes an unguarded gateway and an agent that is meant to be manipu
 **Do these before `terraform apply`**
 
 - [ ] **Use a sandbox account and short-lived credentials** (SSO or an assumed role), not a long-lived IAM user key and not a production account.
-- [ ] **Set an AWS Budget alert.** Nothing in this repo caps spend except the web page's 600-run limit per job and the agent's limit of six tool calls per request. The Terraform does not create a budget.
-- [ ] **Narrow the model permission.** The runtime role in `infra/runtime.tf` may invoke any foundation model (`foundation-model/*`). Restrict it to the model in `var.model_id`.
-- [ ] **Give the presenter's machine its own role.** The web page and `python -m redteam` use your current AWS credentials and can spend money. Use a role that can only invoke this one runtime and read, write and delete this one DynamoDB table. The Terraform does not create this role.
+- [ ] **Turn on the budget alert.** Nothing else caps spend except the web page's 600-run limit per job and the agent's limit of six tool calls per request. Set `budget_alert_email` (and optionally `budget_limit_usd`, default 10) and Terraform creates a monthly budget that emails you at 80% of actual spend and when forecast spend passes 100%. It covers the whole account, not just this stack, and is skipped when the email is empty. The identity running Terraform needs `budgets:ModifyBudget` and `budgets:ViewBudget`.
+- [ ] **Run the web page and red-team runner with the presenter policy.** They use your current AWS credentials and can spend money. Terraform outputs `presenter_policy_arn`, a policy that allows only `InvokeAgentRuntime` on this runtime and `Query` and `DeleteItem` on the sink table. Attach it to a dedicated role or user and use that instead of an administrator. Terraform does not create the role or user.
+
+Already done in the Terraform: the runtime role may invoke only the model in `var.model_id`, not every foundation model. If you switch to a model that needs a cross-region inference profile, add that profile's ARN to the policy in `infra/runtime.tf`.
 
 **Know about these**
 
@@ -132,7 +133,7 @@ This stack includes an unguarded gateway and an agent that is meant to be manipu
 Verified locally (CI runs the same checks):
 
 - Unit tests, including the Cedar policies run through a real Cedar engine (`cedarpy`), the oracles, the runner, the report and the web server.
-- `terraform fmt`, `validate`, and a `plan` that adds 46 resources.
+- `terraform fmt`, `validate`, and a `plan` that adds 47 resources (48 with a budget).
 - The deployment zips are built for arm64 and contain the expected native libraries.
 - Nova Lite was called live to confirm it makes a correct tool call, and attack behavior was measured with a local copy of the agent (not the deployed one).
 
