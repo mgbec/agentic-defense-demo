@@ -67,3 +67,9 @@ variable "budget_alert_email" {
   type        = string
   default     = ""
 }
+
+variable "lockdown" {
+  description = "When true (the default), the deployment keeps running but only serves the fully defended 'policy' profile, and the agent's role loses access to the unguarded 'open' gateway. Set false only while demoing the weaker profiles."
+  type        = bool
+  default     = true
+}

@@ -75,6 +75,16 @@ To get a spending alert, add `-var budget_alert_email=you@example.com`. The iden
 
 ### 3. Attack it
 
+The stack deploys in **lockdown** by default: it keeps running but only serves the fully defended `policy` profile, so the weak profiles are not available to anyone. To demo the comparison, switch the weak profiles on, and switch them off again afterwards:
+
+```
+python scripts/mode.py demo       # all four profiles on (runs terraform apply; shows a plan and asks first)
+python scripts/mode.py lock       # back to lockdown
+python scripts/mode.py status
+```
+
+Run `python scripts/build.py` once before using `mode.py`, because Terraform compares the build output with what is deployed. Any plain `terraform apply` returns to lockdown, because that is the default.
+
 ```
 python -m redteam list
 python -m redteam run --quick                   # 8 attacks x 4 profiles x 3 repeats
@@ -114,7 +124,9 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 
 **Know about these**
 
-- The `open` gateway has no policy engine on purpose, and the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
+- **Lockdown** (`var.lockdown`, on by default) keeps the deployment running while switching off what an attacker could exploit. The agent refuses the `none`, `guardrail` and `isolation` profiles, and the runtime role loses permission to call the unguarded `open` gateway, so the weak path is closed in IAM as well as in code. Switch it with `python scripts/mode.py demo|lock`. Leave it on except while presenting.
+- Lockdown is not an outsider-facing control by itself. Calling the runtime already requires AWS IAM credentials with `bedrock-agentcore:InvokeAgentRuntime`, so only identities you grant that to can reach it. Lockdown limits what those identities can do.
+- The `open` gateway has no policy engine on purpose. In demo mode the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
 - Both gateways use `exception_level = "DEBUG"`, which returns detailed errors to callers. Production gateways should not.
 - The runtime uses `network_mode = "PUBLIC"`, so a hijacked agent could reach the internet. Its role is narrow and holds no secrets. For stricter setups, use VPC mode with limited egress.
 - Inbound calls to the runtime should be IAM (SigV4) authorized, because the Terraform configures no other authorizer. Confirm this in the console after the first apply.
@@ -137,13 +149,18 @@ Verified locally (CI runs the same checks):
 - The deployment zips are built for arm64 and contain the expected native libraries.
 - Nova Lite was called live to confirm it makes a correct tool call, and attack behavior was measured with a local copy of the agent (not the deployed one).
 
-**Not verified until the stack is deployed and run:**
+Verified on a real deployment (us-east-1, one run of the stack):
 
-- That AgentCore accepts the Cedar policies when it validates them against the live gateway.
-- How a policy denial is surfaced to the agent. The hook recognizes common denial wording, so check the "gateway_policy" events on the first run.
-- That the runtime accepts the zip and environment variables, and that the SigV4 MCP session initializes.
-- That Bedrock Guardrails flags the subtly poisoned document.
-- Real end-to-end success rates. Every number in the sample scoreboard is invented.
+- AgentCore accepted all four Cedar policies when validating them against the live gateway.
+- The runtime accepted the zip and environment variables, and the SigV4 MCP session works: the agent called tools through both gateways.
+- A policy denial reaches the agent as "Tool call not allowed due to policy enforcement", and the `gateway_policy` event is recorded. In a small refund test (4 runs per cell) over-limit refunds went through 6 of 8 times with no defenses and 0 of 8 with the policy profile.
+- Bedrock Guardrails flagged the blatantly poisoned article (`kb-004`) as a prompt attack, and the isolation layer withheld it.
+
+**Still not verified:**
+
+- That Bedrock Guardrails flags the *subtly* poisoned article (`kb-006`).
+- Full scoreboard rates. Only the two refund attacks have been run against the deployment. Every number in the built-in sample scoreboard is invented.
+- Nova Lite wraps its reasoning in `<thinking>` tags. The agent strips that before the customer (and the output guardrail) sees the reply. This was checked live on a few requests, not across the whole attack set.
 
 ## Limitations
 

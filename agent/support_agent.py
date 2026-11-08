@@ -7,6 +7,7 @@ The agent loop itself is injected (``run_agent``), so this file can be tested wi
 
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable
 from typing import Any
@@ -18,11 +19,28 @@ from defenses.trace import Trace
 BLOCKED_REPLY = "I'm sorry, I can't help with that request."
 WITHHELD_REPLY = "I'm sorry, I can't share that information."
 ERROR_REPLY = "Sorry, something went wrong while handling your request."
+NO_ANSWER_REPLY = "I'm sorry, I wasn't able to put together an answer. Could you rephrase that?"
 
 # (prompt, config, trace) -> the agent's final text
 AgentRunner = Callable[[str, DefenseConfig, Trace], str]
 
 _QUIET_DECISIONS = {"allow", "info"}
+
+_THINKING = re.compile(r"<thinking>.*?(?:</thinking>|\Z)", re.DOTALL | re.IGNORECASE)
+_RESPONSE_TAG = re.compile(r"</?response>", re.IGNORECASE)
+_UNCLOSED_RESPONSE = re.compile(r"</response(?!>)", re.IGNORECASE)
+
+
+def clean_reply(text: str) -> str:
+    """What the customer should see: the answer, without the model's reasoning markup.
+
+    Some models wrap their reasoning in <thinking> tags and the answer in <response> tags. The
+    reasoning is removed (an unclosed block is removed to the end, so it can never leak half of
+    itself) and the answer tags are unwrapped. This runs before the output guardrail, so the
+    guardrail checks exactly what the customer would read."""
+    cleaned = _UNCLOSED_RESPONSE.sub("", _RESPONSE_TAG.sub("", _THINKING.sub("", text)))
+    # A reply that was nothing but reasoning must not fall back to showing that reasoning.
+    return cleaned.strip() or NO_ANSWER_REPLY
 
 
 def _interventions(trace: Trace) -> list[str]:
@@ -71,7 +89,7 @@ def run_request(
             trace.add("guardrail_input", "allow")
 
     try:
-        response = run_agent(text, config, trace)
+        response = clean_reply(run_agent(text, config, trace))
     except Exception as exc:  # noqa: BLE001 - report any agent failure to the caller
         error = f"{type(exc).__name__}: {exc}"
         trace.add("agent", "info", error)
@@ -92,8 +110,16 @@ def run_request(
     return finish()
 
 
-def handle(payload: dict[str, Any], *, guardrail: Guardrail | None, run_agent: AgentRunner) -> dict:
-    """Validate a runtime payload and run the request."""
+def handle(
+    payload: dict[str, Any],
+    *,
+    guardrail: Guardrail | None,
+    run_agent: AgentRunner,
+    allowed: tuple[str, ...] | None = None,
+) -> dict:
+    """Validate a runtime payload and run the request.
+
+    ``allowed`` limits which profiles this deployment will run (None means all)."""
     prompt = payload.get("prompt")
     if not isinstance(prompt, str) or not prompt.strip():
         return {"error": "payload.prompt must be a non-empty string"}
@@ -101,4 +127,11 @@ def handle(payload: dict[str, Any], *, guardrail: Guardrail | None, run_agent: A
         config = for_profile(payload.get("profile", "policy"))
     except ValueError as exc:
         return {"error": str(exc)}
+    if allowed is not None and config.profile not in allowed:
+        return {
+            "error": (
+                f"Profile '{config.profile}' is switched off on this deployment (lockdown). "
+                f"Allowed: {', '.join(allowed)}. Turn lockdown off to demo the weaker profiles."
+            )
+        }
     return run_request(prompt, config, guardrail=guardrail, run_agent=run_agent)

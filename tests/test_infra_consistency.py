@@ -90,3 +90,20 @@ def test_the_budget_is_only_created_when_an_email_is_given():
     block = VARIABLES_TF.split('variable "budget_alert_email"', 1)[1]
     assert 'default     = ""' in block.split("}\n", 1)[0]
     assert 'count = var.budget_alert_email == "" ? 0 : 1' in (INFRA / "security.tf").read_text()
+
+
+def test_lockdown_is_on_by_default_and_narrows_profiles_and_gateway_access():
+    block = VARIABLES_TF.split('variable "lockdown"', 1)[1].split("}\n", 1)[0]
+    assert "default     = true" in block
+    assert 'ALLOWED_PROFILES    = var.lockdown ? "policy" :' in RUNTIME_TF
+    # In lockdown the runtime role must not be able to reach the unguarded gateway.
+    iam = RUNTIME_TF.split('sid     = "CallOnlyTheseGateways"', 1)[1].split("}\n", 1)[0]
+    locked, unlocked = iam.split("] : [", 1)
+    assert "gateway.open" not in locked and "gateway.open" in unlocked
+
+
+def test_the_demo_mode_profile_list_matches_the_agent_profiles():
+    from common.constants import PROFILES
+
+    match = re.search(r'ALLOWED_PROFILES\s*=\s*var\.lockdown \? "policy" : "([^"]+)"', RUNTIME_TF)
+    assert match and tuple(match.group(1).split(",")) == tuple(PROFILES)

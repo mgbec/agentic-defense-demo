@@ -80,7 +80,10 @@ data "aws_iam_policy_document" "runtime_permissions" {
   statement {
     sid     = "CallOnlyTheseGateways"
     actions = ["bedrock-agentcore:InvokeGateway"]
-    resources = [
+    # In lockdown the unguarded gateway is unreachable even if the agent code were bypassed.
+    resources = var.lockdown ? [
+      aws_bedrockagentcore_gateway.guarded.gateway_arn,
+      ] : [
       aws_bedrockagentcore_gateway.open.gateway_arn,
       aws_bedrockagentcore_gateway.guarded.gateway_arn,
     ]
@@ -148,6 +151,7 @@ resource "aws_bedrockagentcore_agent_runtime" "agent" {
     GUARDRAIL_VERSION   = aws_bedrock_guardrail_version.main.version
     GATEWAY_URL_OPEN    = aws_bedrockagentcore_gateway.open.gateway_url
     GATEWAY_URL_GUARDED = aws_bedrockagentcore_gateway.guarded.gateway_url
+    ALLOWED_PROFILES    = var.lockdown ? "policy" : "none,guardrail,isolation,policy"
   }
 
   depends_on = [aws_iam_role_policy.runtime]

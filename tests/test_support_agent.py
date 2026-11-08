@@ -1,8 +1,15 @@
 import pytest
-from support_agent import BLOCKED_REPLY, WITHHELD_REPLY, handle, run_request
+from support_agent import (
+    BLOCKED_REPLY,
+    NO_ANSWER_REPLY,
+    WITHHELD_REPLY,
+    clean_reply,
+    handle,
+    run_request,
+)
 
 from common.constants import CANARY_SSN, CANARY_SYSTEM_PROMPT, PROFILES
-from defenses.config import for_profile
+from defenses.config import allowed_profiles, for_profile
 from defenses.guardrail import Guardrail
 from defenses.prompts import system_prompt
 from tests.fakes import FakeBedrock
@@ -141,3 +148,69 @@ def test_handle_rejects_bad_prompts(payload):
 def test_handle_rejects_unknown_profiles():
     out = handle({"prompt": "hi", "profile": "nope"}, guardrail=None, run_agent=Runner())
     assert "Unknown profile" in out["error"]
+
+
+# ---------------------------------------------------------------- reasoning markup
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("<thinking>plan</thinking>\n\nHello there.", "Hello there."),
+        ("<thinking>a</thinking>\n<response>Hi.</response>", "Hi."),
+        ("<THINKING>\nmulti\nline\n</THINKING> Answer", "Answer"),
+        ("<thinking>x</thinking>one<thinking>y</thinking> two", "one two"),
+        # Truncated markup, as seen from a real model: no closing '>'.
+        ("<thinking>x</thinking><response>Done.</response", "Done."),
+        ("No markup at all.", "No markup at all."),
+    ],
+)
+def test_clean_reply_removes_reasoning_markup(raw, expected):
+    assert clean_reply(raw) == expected
+
+
+def test_an_unclosed_thinking_block_is_removed_to_the_end():
+    assert clean_reply("Answer.<thinking>half a thought") == "Answer."
+
+
+def test_a_reply_that_is_only_reasoning_never_falls_back_to_showing_it():
+    assert clean_reply("<thinking>secret plan</thinking>") == NO_ANSWER_REPLY
+    assert clean_reply("<thinking>never closed") == NO_ANSWER_REPLY
+
+
+def test_the_customer_sees_the_cleaned_reply_and_the_guardrail_checks_it():
+    result = run_request(
+        "hi", for_profile("guardrail"), guardrail=guardrail(block_if=("SECRET",)),
+        run_agent=Runner("<thinking>SECRET reasoning</thinking>Hello."),
+    )
+    # The secret was only in the reasoning, which the customer never sees.
+    assert result["response"] == "Hello."
+    assert result["interventions"] == []
+
+
+# ---------------------------------------------------------------- lockdown
+def test_all_profiles_are_allowed_when_nothing_is_configured():
+    assert allowed_profiles({}) == tuple(PROFILES)
+
+
+def test_allowed_profiles_parses_a_list_in_canonical_order():
+    assert allowed_profiles({"ALLOWED_PROFILES": " policy , none "}) == ("none", "policy")
+
+
+@pytest.mark.parametrize("raw", ["", "  ", "bogus", "none-ish,"])
+def test_a_setting_naming_no_valid_profile_fails_closed(raw):
+    assert allowed_profiles({"ALLOWED_PROFILES": raw}) == ("policy",)
+
+
+@pytest.mark.parametrize("profile", ["none", "guardrail", "isolation"])
+def test_lockdown_refuses_weaker_profiles_without_running_the_agent(profile):
+    runner = Runner()
+    out = handle({"prompt": "hi", "profile": profile}, guardrail=None, run_agent=runner,
+                 allowed=("policy",))
+    assert "switched off" in out["error"] and "response" not in out
+    assert runner.prompts == []
+
+
+def test_lockdown_still_serves_the_defended_profile_and_the_default():
+    for payload in ({"prompt": "hi", "profile": "policy"}, {"prompt": "hi"}):
+        out = handle(payload, guardrail=guardrail(), run_agent=Runner(), allowed=("policy",))
+        assert out["profile"] == "policy"

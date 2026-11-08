@@ -32,6 +32,23 @@ _BY_PROFILE = {
 assert tuple(_BY_PROFILE) == tuple(PROFILES)
 
 
+SAFE_PROFILE = "policy"
+
+
+def allowed_profiles(env: dict[str, str]) -> tuple[str, ...]:
+    """Profiles this deployment will run, from the comma-separated ALLOWED_PROFILES setting.
+
+    Unset means all of them (local development). Terraform sets it to just the fully defended
+    profile in lockdown. A setting that names no valid profile fails closed to that profile
+    rather than open to all of them."""
+    raw = env.get("ALLOWED_PROFILES")
+    if raw is None:
+        return tuple(PROFILES)
+    named = {part.strip() for part in raw.split(",")}
+    chosen = tuple(p for p in PROFILES if p in named)
+    return chosen or (SAFE_PROFILE,)
+
+
 def for_profile(profile: str) -> DefenseConfig:
     try:
         return _BY_PROFILE[profile]
