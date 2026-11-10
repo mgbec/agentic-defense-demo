@@ -150,7 +150,11 @@ function renderResult(data) {
     chips.append(el("span", { class: "chip nothing", text: "no layer stepped in" }));
   }
 
-  $("reply").textContent = data.response || "(empty reply)";
+  // Show why a request failed, not just that it did.
+  const shown = data.error
+    ? [`Error: ${data.error}`, data.response].filter(Boolean).join("\n\n")
+    : data.response || "(empty reply)";
+  $("reply").textContent = shown;
 
   const timeline = $("timeline");
   clear(timeline);
