@@ -2,7 +2,7 @@
 
 ## Before the session
 
-- The stack runs in lockdown (only the `policy` profile). Run `python scripts/mode.py demo` first, and `python scripts/mode.py lock` when you finish.
+- Check `python scripts/mode.py status`. It should say demo mode, so all four profiles work. If it says lockdown, run `python scripts/mode.py demo` first.
 - Deploy the stack a day ahead and run `python -m redteam run --quick` once, so the first live run is not the first run ever. Check the "gateway_policy" and "tool_result_screen" events show up on the policy attacks. If they do not, fix that before presenting.
 - Run `python -m redteam run --repeats 5` and keep the saved file. It is your fallback if the network or the model misbehaves. Open it from the page's "saved run" box.
 - Start `python -m web` and open http://localhost:8000. Clear the sink.

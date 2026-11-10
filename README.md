@@ -77,15 +77,15 @@ To get a spending alert, add `-var budget_alert_email=you@example.com`. The iden
 
 Run every command below from the project's virtual environment (`.venv\Scripts\activate`, or call `.venv\Scripts\python.exe` directly). A global Python usually has an older `boto3` that does not know the `bedrock-agentcore` service, and the tools stop with a message saying so.
 
-The stack deploys in **lockdown** by default: it keeps running but only serves the fully defended `policy` profile, so the weak profiles are not available to anyone. To demo the comparison, switch the weak profiles on, and switch them off again afterwards:
+The stack deploys in **demo mode** by default, so all four profiles work. There is an optional **lockdown** that serves only the fully defended `policy` profile. Use it if other people or roles in the account can call the agent:
 
 ```
-python scripts/mode.py demo       # all four profiles on (runs terraform apply; shows a plan and asks first)
-python scripts/mode.py lock       # back to lockdown
+python scripts/mode.py lock       # only the policy profile (runs terraform apply; shows a plan and asks first)
+python scripts/mode.py demo       # all four profiles on
 python scripts/mode.py status
 ```
 
-Run `python scripts/build.py` once before using `mode.py`, because Terraform compares the build output with what is deployed. Any plain `terraform apply` returns to lockdown, because that is the default.
+Run `python scripts/build.py` once before using `mode.py`, because Terraform compares the build output with what is deployed. A plain `terraform apply` returns to demo mode, because that is the default.
 
 ```
 python -m redteam list
@@ -126,8 +126,8 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 
 **Know about these**
 
-- **Lockdown** (`var.lockdown`, on by default) keeps the deployment running while switching off what an attacker could exploit. The agent refuses the `none`, `guardrail` and `isolation` profiles, and the runtime role loses permission to call the unguarded `open` gateway, so the weak path is closed in IAM as well as in code. Switch it with `python scripts/mode.py demo|lock`. Leave it on except while presenting.
-- Lockdown is not an outsider-facing control by itself. Calling the runtime already requires AWS IAM credentials with `bedrock-agentcore:InvokeAgentRuntime`, so only identities you grant that to can reach it. Lockdown limits what those identities can do.
+- **Lockdown** (`var.lockdown`, off by default) makes the deployment serve only the fully defended profile. The agent refuses the `none`, `guardrail` and `isolation` profiles, and the runtime role loses permission to call the unguarded `open` gateway. Switch it with `python scripts/mode.py lock|demo`.
+- Lockdown gives little protection on its own. Calling the runtime already requires AWS IAM credentials with `bedrock-agentcore:InvokeAgentRuntime`, so outsiders are blocked either way, and anyone holding your admin credentials can switch it off. It only limits what other identities you have granted access to can do. It does not cap spend (use the budget alert), and it does not stop direct calls to the open gateway by an identity with `bedrock-agentcore:InvokeGateway`.
 - The `open` gateway has no policy engine on purpose. In demo mode the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
 - Both gateways use `exception_level = "DEBUG"`, which returns detailed errors to callers. Production gateways should not.
 - The runtime uses `network_mode = "PUBLIC"`, so a hijacked agent could reach the internet. Its role is narrow and holds no secrets. For stricter setups, use VPC mode with limited egress.

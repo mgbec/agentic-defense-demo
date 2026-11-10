@@ -6,7 +6,8 @@
 
 This runs `terraform apply`, so Terraform shows you its plan and asks before changing anything.
 The change updates the existing runtime's settings and one IAM policy; nothing is destroyed.
-Lockdown is also the Terraform default, so any plain `terraform apply` returns to it.
+Demo mode is the Terraform default, so a plain `terraform apply` returns to it. Lockdown only
+lasts until the next apply without `-var lockdown=true`.
 """
 
 from __future__ import annotations
