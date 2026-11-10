@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-labelledby="t d">
+  <title id="t">Defense in depth for an AI agent: five layers and the red-team test suite</title>
+  <desc id="d">Attacks pass left to right through four slices of cheese (model and prompt, Bedrock Guardrails, document screening, gateway policy) and a plate of least-privilege tools. Each slice has holes in different places. A red-team suite of attacks, controls and benign requests is scored against the four profiles.</desc>
+  <defs>
+    <linearGradient id="cheese" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd84d"/>
+      <stop offset="1" stop-color="#f5b800"/>
+    </linearGradient>
+    <marker id="arr" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
+      <path d="M0,0 L16,8 L0,16 z" fill="#b3261e"/>
+    </marker>
+    <marker id="arrok" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
+      <path d="M0,0 L16,8 L0,16 z" fill="#1b5e20"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="760" fill="#fffdf5"/>
+  <text x="600" y="44" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#1b1f24">Every slice has holes. Stack them so the holes don't line up.</text>
+  <text x="600" y="72" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#556070">Each defense profile adds one slice to the one before it. Cumulative: none, then guardrail, then isolation, then policy.</text>
+
+  <!-- friendly attacker -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <circle cx="90" cy="250" r="46" fill="#ede7f6" stroke="#4527a0" stroke-width="3"/>
+    <text x="90" y="244" text-anchor="middle" font-size="15" font-weight="700" fill="#311b92">Friendly</text>
+    <text x="90" y="264" text-anchor="middle" font-size="15" font-weight="700" fill="#311b92">attacker</text>
+    <text x="90" y="318" text-anchor="middle" font-size="13" fill="#556070">red-team suite</text>
+  </g>
+
+  <!-- slice 1: model and prompt -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="200" y="120" width="150" height="260" rx="14" fill="url(#cheese)" stroke="#b58900" stroke-width="3"/>
+    <circle cx="240" cy="205" r="13" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="275" cy="300" r="16" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="310" cy="350" r="14" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <text x="275" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">1. Model</text>
+    <text x="275" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">and prompt</text>
+    <text x="275" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Resists blunt attacks.</text>
+    <text x="275" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Falls for pretexts.</text>
+  </g>
+
+  <!-- slice 2: guardrails -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="400" y="120" width="150" height="260" rx="14" fill="url(#cheese)" stroke="#b58900" stroke-width="3"/>
+    <circle cx="515" cy="225" r="14" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="475" cy="300" r="16" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="440" cy="352" r="12" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <text x="475" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">2. Bedrock</text>
+    <text x="475" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">Guardrails</text>
+    <text x="475" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Sees text, not intent.</text>
+    <text x="475" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Masks SSNs and cards.</text>
+  </g>
+
+  <!-- slice 3: document screening -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="600" y="120" width="150" height="260" rx="14" fill="url(#cheese)" stroke="#b58900" stroke-width="3"/>
+    <circle cx="675" cy="300" r="16" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="710" cy="205" r="15" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="635" cy="350" r="12" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <text x="675" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">3. Document</text>
+    <text x="675" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">screening</text>
+    <text x="675" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Untrusted-data fence.</text>
+    <text x="675" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Only covers documents.</text>
+  </g>
+
+  <!-- slice 4: gateway policy -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="800" y="120" width="150" height="260" rx="14" fill="url(#cheese)" stroke="#b58900" stroke-width="3"/>
+    <circle cx="875" cy="300" r="16" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="835" cy="215" r="13" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <circle cx="915" cy="350" r="12" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
+    <text x="875" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">4. Gateway policy</text>
+    <text x="875" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">(Cedar)</text>
+    <text x="875" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Outside the model.</text>
+    <text x="875" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Wording can't move it.</text>
+  </g>
+
+  <!-- plate: least privilege -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="1000" y="150" width="150" height="200" rx="14" fill="#e3f2fd" stroke="#0d47a1" stroke-width="3"/>
+    <text x="1075" y="186" text-anchor="middle" font-size="15" font-weight="700" fill="#0d2f66">5. Least-privilege</text>
+    <text x="1075" y="206" text-anchor="middle" font-size="15" font-weight="700" fill="#0d2f66">tools</text>
+    <text x="1075" y="240" text-anchor="middle" font-size="13" fill="#1b1f24">One Lambda and</text>
+    <text x="1075" y="258" text-anchor="middle" font-size="13" fill="#1b1f24">one role per tool.</text>
+    <text x="1075" y="286" text-anchor="middle" font-size="13" fill="#1b1f24">Read-only tools</text>
+    <text x="1075" y="304" text-anchor="middle" font-size="13" fill="#1b1f24">have no database.</text>
+    <text x="1075" y="332" text-anchor="middle" font-size="12" fill="#556070">writes go to a "sink"</text>
+    <text x="1075" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">The plate under</text>
+    <text x="1075" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">the cheese.</text>
+  </g>
+
+  <!-- attack that gets through one hole but is stopped later -->
+  <!-- worst case: one hole in every slice lines up on the same line -->
+  <path d="M136 262 L275 300 L992 300" fill="none" stroke="#b3261e" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#arr)"/>
+  <!-- an attack that gets through slice 1 and is stopped by slice 2 -->
+  <path d="M136 238 L240 205 L394 205" fill="none" stroke="#1b5e20" stroke-width="3" marker-end="url(#arrok)"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="600" y="466" text-anchor="middle" font-size="14" font-weight="700"><tspan fill="#1b5e20">Green: a layer stepped in.</tspan><tspan fill="#556070" font-weight="400">   </tspan><tspan fill="#b3261e">Red dashed: every hole lined up, the worst case.</tspan></text>
+  </g>
+
+  <!-- test suite -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="40" y="500" width="1120" height="230" rx="14" fill="#ffffff" stroke="#cfd6df" stroke-width="2"/>
+    <text x="60" y="532" font-size="18" font-weight="700" fill="#1b1f24">The red-team suite: 14 tests, run against all four profiles, scored by what the tools recorded (no AI judge)</text>
+
+    <rect x="60" y="552" width="350" height="160" rx="10" fill="#fdecea" stroke="#b3261e" stroke-width="2"/>
+    <text x="80" y="580" font-size="16" font-weight="700" fill="#7a1212">Attacks (should hurt a weak setup)</text>
+    <text x="80" y="606" font-size="14" fill="#1b1f24">- Personal data leak, by pretext or via a note</text>
+    <text x="80" y="628" font-size="14" fill="#1b1f24">- Poisoned help article</text>
+    <text x="80" y="650" font-size="14" fill="#1b1f24">- Email data to an outside address</text>
+    <text x="80" y="672" font-size="14" fill="#1b1f24">- Over-limit refund (manager, goodwill)</text>
+    <text x="80" y="698" font-size="13" fill="#556070">Lower harm rate is better.</text>
+
+    <rect x="425" y="552" width="350" height="160" rx="10" fill="#fff8e1" stroke="#b58900" stroke-width="2"/>
+    <text x="445" y="580" font-size="16" font-weight="700" fill="#5a4300">Controls (model resists alone)</text>
+    <text x="445" y="606" font-size="14" fill="#1b1f24">- Blatant injection in a document</text>
+    <text x="445" y="628" font-size="14" fill="#1b1f24">- Direct and pretext prompt extraction</text>
+    <text x="445" y="660" font-size="13" fill="#556070">Shown so the demo doesn't take</text>
+    <text x="445" y="678" font-size="13" fill="#556070">credit for protection it didn't add.</text>
+
+    <rect x="790" y="552" width="350" height="160" rx="10" fill="#e8f5e9" stroke="#1b5e20" stroke-width="2"/>
+    <text x="810" y="580" font-size="16" font-weight="700" fill="#0d4a1f">Benign requests (cost of defenses)</text>
+    <text x="810" y="606" font-size="14" fill="#1b1f24">- A legitimate refund</text>
+    <text x="810" y="628" font-size="14" fill="#1b1f24">- A normal policy question</text>
+    <text x="810" y="650" font-size="14" fill="#1b1f24">- A legitimate internal email</text>
+    <text x="810" y="698" font-size="13" fill="#556070">Higher completion is better.</text>
+  </g>
+</svg>
