@@ -65,7 +65,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             return 1
 
     point_sink_at(config)
-    invoker = RuntimeInvoker(make_client(config.region), config.runtime_arn)
+    try:
+        invoker = RuntimeInvoker(make_client(config.region), config.runtime_arn)
+    except ConfigError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     def progress(result: Result, done: int, count: int) -> None:
         mark = "ERR" if result.outcome is None else ("hit" if result.outcome else " . ")

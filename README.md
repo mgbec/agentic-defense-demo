@@ -75,6 +75,8 @@ To get a spending alert, add `-var budget_alert_email=you@example.com`. The iden
 
 ### 3. Attack it
 
+Run every command below from the project's virtual environment (`.venv\Scripts\activate`, or call `.venv\Scripts\python.exe` directly). A global Python usually has an older `boto3` that does not know the `bedrock-agentcore` service, and the tools stop with a message saying so.
+
 The stack deploys in **lockdown** by default: it keeps running but only serves the fully defended `policy` profile, so the weak profiles are not available to anyone. To demo the comparison, switch the weak profiles on, and switch them off again afterwards:
 
 ```

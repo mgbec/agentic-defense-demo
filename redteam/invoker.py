@@ -8,20 +8,32 @@ from typing import Any
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import UnknownServiceError
+
+from redteam.config import ConfigError
 
 # An agent run makes several model calls, so allow generous time before giving up.
 READ_TIMEOUT_SECONDS = 240
 
 
 def make_client(region: str) -> Any:
-    return boto3.client(
-        "bedrock-agentcore",
-        region_name=region,
-        config=Config(
-            read_timeout=READ_TIMEOUT_SECONDS,
-            retries={"max_attempts": 3, "mode": "standard"},
-        ),
-    )
+    try:
+        return boto3.client(
+            "bedrock-agentcore",
+            region_name=region,
+            config=Config(
+                read_timeout=READ_TIMEOUT_SECONDS,
+                retries={"max_attempts": 3, "mode": "standard"},
+            ),
+        )
+    except UnknownServiceError:
+        raise ConfigError(
+            f"The boto3 installed here ({boto3.__version__}) is too old to know the "
+            "bedrock-agentcore service. You are probably not using the project's virtual "
+            "environment. Activate it (.venv\\Scripts\\activate on Windows, "
+            "source .venv/bin/activate elsewhere), or run: "
+            "pip install -r requirements-dev.txt"
+        ) from None
 
 
 def _read_body(body: Any) -> bytes:

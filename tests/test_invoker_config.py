@@ -122,3 +122,17 @@ def test_point_sink_at_sets_the_table_and_clears_the_cache(monkeypatch):
     cfg.point_sink_at(cfg.DemoConfig("us-west-2", ARN, "my-table"))
     assert os.environ["SINK_TABLE"] == "my-table" and os.environ["AWS_REGION"] == "us-west-2"
     assert sink._generation == 1
+
+
+def test_an_old_boto3_gets_an_actionable_error(monkeypatch):
+    import boto3
+    from botocore.exceptions import UnknownServiceError
+
+    from redteam.invoker import make_client
+
+    def old_boto3(*args, **kwargs):
+        raise UnknownServiceError(service_name="bedrock-agentcore", known_service_names=["s3"])
+
+    monkeypatch.setattr(boto3, "client", old_boto3)
+    with pytest.raises(cfg.ConfigError, match="virtual environment"):
+        make_client("us-east-1")
