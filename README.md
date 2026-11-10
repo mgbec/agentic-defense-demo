@@ -17,6 +17,8 @@ Each profile adds one layer to the one before it.
 
 No layer is complete. That is the point of stacking them.
 
+![Four slices of cheese, each with holes in different places, then a plate of least-privilege tools. A red-team suite of attacks, controls and benign requests is scored against them.](docs/layers.png)
+
 ## The red-team suite
 
 `attacks/attacks.yaml` holds 14 entries of three kinds:
@@ -39,7 +41,8 @@ infra/       Terraform (runtime, gateway, Cedar policies, guardrail, Lambdas, si
 attacks/     Attack definitions (YAML)
 redteam/     Runner, oracles, scoreboard report, CLI
 web/         Local web page (stdlib server + vanilla JS)
-scripts/     build.py (deployment zips), probe_model.py, make_sample_results.py
+scripts/     build.py (deployment zips), mode.py (demo/lockdown switch), probe_model.py, make_sample_results.py
+docs/        DEMO.md (presenter script), layers.svg and layers.png (the diagram above)
 tests/       Unit tests; none need AWS credentials
 ```
 
@@ -71,7 +74,7 @@ terraform apply
 
 Region is `us-east-1` and the model is `amazon.nova-lite-v1:0`; both are Terraform variables.
 
-To get a spending alert, add `-var budget_alert_email=you@example.com`. The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, and `bedrock-agentcore:InvokeGateway` on the guarded gateway. Policy creation validates the Cedar against the live gateway.
+To get a spending alert, add `-var budget_alert_email=you@example.com`, or put `budget_alert_email = "you@example.com"` in `infra/terraform.tfvars`. That file is git-ignored, so your address stays out of the repository. The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, and `bedrock-agentcore:InvokeGateway` on the guarded gateway. Policy creation validates the Cedar against the live gateway.
 
 ### 3. Attack it
 
@@ -131,7 +134,7 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 - The `open` gateway has no policy engine on purpose. In demo mode the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
 - Both gateways use `exception_level = "DEBUG"`, which returns detailed errors to callers. Production gateways should not.
 - The runtime uses `network_mode = "PUBLIC"`, so a hijacked agent could reach the internet. Its role is narrow and holds no secrets. For stricter setups, use VPC mode with limited egress.
-- Inbound calls to the runtime should be IAM (SigV4) authorized, because the Terraform configures no other authorizer. Confirm this in the console after the first apply.
+- Inbound calls to the runtime require AWS (SigV4) credentials, because the Terraform configures no other authorizer. An unauthenticated request returned HTTP 403 on the live stack.
 - Not hardened, because the data is fake: no TLS-only bucket policy, no DynamoDB point-in-time recovery or customer-managed key, and the broad AWS-managed Lambda logging policy.
 - Reserved Lambda concurrency is not set. New accounts often have a low concurrency quota, and setting it can make the apply fail.
 
@@ -157,12 +160,17 @@ Verified on a real deployment (us-east-1, one run of the stack):
 - The runtime accepted the zip and environment variables, and the SigV4 MCP session works: the agent called tools through both gateways.
 - A policy denial reaches the agent as "Tool call not allowed due to policy enforcement", and the `gateway_policy` event is recorded. In a small refund test (4 runs per cell) over-limit refunds went through 6 of 8 times with no defenses and 0 of 8 with the policy profile.
 - Bedrock Guardrails flagged the blatantly poisoned article (`kb-004`) as a prompt attack, and the isolation layer withheld it.
+- Nova Lite wraps its reasoning in `<thinking>` tags. The agent strips that before the customer (and the output guardrail) sees the reply, and live replies came back clean.
+- Lockdown works in both directions on the live stack: with it on, the three weaker profiles are refused and `policy` still answers.
+- A request with no AWS credentials to the runtime gets HTTP 403.
+- The budget alert was created in AWS with the 80% actual and 100% forecast notifications.
+- The side effect of making the isolation layer withhold `kb-004` is a cost: it is also the return-policy FAQ, so in `policy` mode the assistant may decline to quote the return policy.
 
 **Still not verified:**
 
 - That Bedrock Guardrails flags the *subtly* poisoned article (`kb-006`).
 - Full scoreboard rates. Only the two refund attacks have been run against the deployment. Every number in the built-in sample scoreboard is invented.
-- Nova Lite wraps its reasoning in `<thinking>` tags. The agent strips that before the customer (and the output guardrail) sees the reply. This was checked live on a few requests, not across the whole attack set.
+- The `<thinking>` stripping across the whole attack set. It was checked live on a few requests only.
 
 ## Limitations
 
