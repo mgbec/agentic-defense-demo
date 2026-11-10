@@ -17,7 +17,6 @@ import hmac
 import json
 import secrets
 import sys
-import threading
 from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -304,12 +303,15 @@ def main(argv: list[str] | None = None) -> int:
     mode = "OFFLINE (saved scoreboards only)" if args.offline else "connected to AWS"
     print(f"Demo page: {url}   [{mode}]\nPress Ctrl+C to stop.")
     try:
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        threading.Event().wait()
+        # Serve on the main thread, with a short poll interval. On Windows an untimed
+        # wait in the main thread cannot be interrupted, so Ctrl+C would do nothing.
+        server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
-        print("\nbye")
+        print("\nStopping...")
     finally:
-        server.shutdown()
+        api.runs.stop()  # ask any scoreboard run in progress to wind down
+        server.server_close()
+        print("bye")
     return 0
 
 
