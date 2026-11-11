@@ -119,8 +119,8 @@
       <h2>The layers</h2>
       <ol class="layers">
         <li><strong>Model and prompt only (none).</strong> The baseline. The model's own judgment is the only protection.</li>
-        <li><strong>+ Bedrock Guardrails (guardrail).</strong> Screens the user message for prompt attacks and harmful content, and masks SSNs and card numbers in both the message and the reply. It sees text, not intent.</li>
-        <li><strong>+ Isolation (isolation).</strong> Retrieved documents are screened and fenced off as untrusted data, and the system prompt is hardened. It reduces risk but cannot guarantee anything.</li>
+        <li><strong>+ Bedrock Guardrails (guardrail).</strong> One Bedrock guardrail checks the customer's message for prompt attacks and harmful content, and masks SSNs and card numbers in both the message and the reply. It sees text, not intent.</li>
+        <li><strong>+ Isolation (isolation).</strong> Runs that same guardrail on each retrieved document and withholds any it flags. It also fences the remaining documents off as untrusted data and hardens the system prompt. The guardrail is called at three points: on the message, on each document, and on the reply. In the trace these show as <em>guardrail_input</em>, <em>tool_result_screen</em> and <em>guardrail_output</em>. It reduces risk but cannot guarantee anything.</li>
         <li><strong>+ Gateway policy (policy).</strong> Cedar rules on the gateway decide whether a tool call is allowed at all (for example, refunds over a limit, or email to an outside domain). This is enforced outside the model, so the model cannot talk its way past it.</li>
       </ol>
 

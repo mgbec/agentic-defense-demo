@@ -12,7 +12,7 @@ Each profile adds one layer to the one before it.
 |---|---|---|---|
 | `none` | Nothing. Model and prompt only. | - | Everything the model can be talked into |
 | `guardrail` | Bedrock Guardrails on the user message and the reply (prompt-attack and content filters, SSN/card masking) | Obvious jailbreaks, PII leaking out | Text that looks harmless but carries intent |
-| `isolation` | Retrieved documents are screened and fenced as untrusted data; hardened system prompt | Instructions hidden in documents | Anything that is not in a document |
+| `isolation` | The same guardrail also screens retrieved documents; documents that pass are fenced as untrusted data; hardened system prompt | Instructions hidden in documents | Anything that is not in a document |
 | `policy` | Cedar policy enforced by the gateway on every tool call | Over-limit refunds, email to outside domains. The model cannot argue with it | Harm inside what the policy allows |
 
 No layer is complete. That is the point of stacking them.

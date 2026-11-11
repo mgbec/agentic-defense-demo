@@ -46,8 +46,10 @@
     <circle cx="440" cy="352" r="12" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
     <text x="475" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">2. Bedrock</text>
     <text x="475" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">Guardrails</text>
-    <text x="475" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Sees text, not intent.</text>
-    <text x="475" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Masks SSNs and cards.</text>
+    <text x="475" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Guardrail on the message</text>
+    <text x="475" y="421" text-anchor="middle" font-size="13" fill="#1b1f24">and on the reply.</text>
+    <text x="475" y="438" text-anchor="middle" font-size="13" fill="#1b1f24">Sees text, not intent.</text>
+    <text x="475" y="455" text-anchor="middle" font-size="13" fill="#1b1f24">Masks SSNs and cards.</text>
   </g>
 
   <!-- slice 3: document screening -->
@@ -58,8 +60,10 @@
     <circle cx="635" cy="350" r="12" fill="#fffdf5" stroke="#b58900" stroke-width="2"/>
     <text x="675" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">3. Document</text>
     <text x="675" y="164" text-anchor="middle" font-size="15" font-weight="700" fill="#3e2c00">screening</text>
-    <text x="675" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Untrusted-data fence.</text>
-    <text x="675" y="422" text-anchor="middle" font-size="13" fill="#1b1f24">Only covers documents.</text>
+    <text x="675" y="404" text-anchor="middle" font-size="13" fill="#1b1f24">Same guardrail, applied</text>
+    <text x="675" y="421" text-anchor="middle" font-size="13" fill="#1b1f24">to retrieved documents.</text>
+    <text x="675" y="438" text-anchor="middle" font-size="13" fill="#1b1f24">Adds a fence and a</text>
+    <text x="675" y="455" text-anchor="middle" font-size="13" fill="#1b1f24">hardened prompt.</text>
   </g>
 
   <!-- slice 4: gateway policy -->
@@ -94,7 +98,7 @@
   <!-- an attack that gets through slice 1 and is stopped by slice 2 -->
   <path d="M136 238 L240 205 L394 205" fill="none" stroke="#1b5e20" stroke-width="3" marker-end="url(#arrok)"/>
   <g font-family="Segoe UI, Arial, sans-serif">
-    <text x="600" y="466" text-anchor="middle" font-size="14" font-weight="700"><tspan fill="#1b5e20">Green: a layer stepped in.</tspan><tspan fill="#556070" font-weight="400">   </tspan><tspan fill="#b3261e">Red dashed: every hole lined up, the worst case.</tspan></text>
+    <text x="600" y="484" text-anchor="middle" font-size="14" font-weight="700"><tspan fill="#1b5e20">Green: a layer stepped in.</tspan><tspan fill="#556070" font-weight="400">   </tspan><tspan fill="#b3261e">Red dashed: every hole lined up, the worst case.</tspan></text>
   </g>
 
   <!-- test suite -->

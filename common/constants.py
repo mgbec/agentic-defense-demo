@@ -22,8 +22,8 @@ PROFILE_DESCRIPTIONS = {
         "Adds Amazon Bedrock Guardrails on the customer's message and on the final answer."
     ),
     "isolation": (
-        "Also screens retrieved documents for hidden instructions, fences them off as untrusted "
-        "data, and uses a hardened system prompt."
+        "Also runs the same guardrail on retrieved documents to catch hidden instructions, "
+        "fences them off as untrusted data, and uses a hardened system prompt."
     ),
     "policy": (
         "Also sends every tool call through a gateway that enforces Cedar policy, outside the "
