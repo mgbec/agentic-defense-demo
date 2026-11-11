@@ -2,10 +2,12 @@
 
 ## Before the session
 
-- Check `python scripts/mode.py status`. It should say demo mode, so all four profiles work. If it says lockdown, run `python scripts/mode.py demo` first.
-- Deploy the stack a day ahead and run `python -m redteam run --quick` once, so the first live run is not the first run ever. Check the "gateway_policy" and "tool_result_screen" events show up on the policy attacks. If they do not, fix that before presenting.
-- Run `python -m redteam run --repeats 5` and keep the saved file. It is your fallback if the network or the model misbehaves. Open it from the page's "saved run" box.
-- Start `python -m web` and open http://localhost:8000. Clear the sink.
+Type every command in a terminal open in the project folder. The setup steps are in the README's Quick start (Part B to deploy once, Part C to start the page).
+
+- Check `.venv\Scripts\python.exe scripts\mode.py status`. It should say demo mode, so all four profiles work. If it says lockdown, run `.venv\Scripts\python.exe scripts\mode.py demo` first.
+- Deploy the stack a day ahead and run `.venv\Scripts\python.exe -m redteam run --quick` once, so the first live run is not the first run ever. Check the "gateway_policy" and "tool_result_screen" events show up on the policy attacks. If they do not, fix that before presenting.
+- Run `.venv\Scripts\python.exe -m redteam run --repeats 5` and keep the saved file. It is your fallback if the network or the model misbehaves. Open it from the page's "saved run" box.
+- Start `.venv\Scripts\python.exe -m web` and open http://localhost:8000. Clear the sink.
 - Know that results are random. Say so up front.
 
 ## The story
@@ -44,4 +46,4 @@ Point to make: the model can be persuaded. A Cedar rule cannot. Put hard limits 
 
 - A run errors: errors are shown and excluded from rates. Say so and move on, then open the saved run.
 - The model refuses an attack you expected to work: that is the point of the controls. Show the saved run's numbers.
-- No network: `python -m web --offline` shows saved scoreboards and the sample data.
+- No network: `.venv\Scripts\python.exe -m web --offline` shows saved scoreboards and the sample data.

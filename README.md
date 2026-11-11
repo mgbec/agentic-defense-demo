@@ -48,64 +48,130 @@ tests/       Unit tests; none need AWS credentials
 
 ## Quick start
 
-Needs Python 3.12+, [uv](https://docs.astral.sh/uv/), Terraform, and AWS credentials for a sandbox account.
+There are three things you can do. Pick the one that matches where you are.
 
-### 1. Try it without AWS
+| I want to... | Do this |
+|---|---|
+| Look around without an AWS account | **Part A** (about 5 minutes) |
+| Put the agent in AWS | **Part B** (do this once) |
+| Use the demo in my browser | **Part C** (do this each time) |
 
-```
-python -m venv .venv
-.venv\Scripts\activate            # Windows. On macOS/Linux: source .venv/bin/activate
-pip install -r requirements-dev.txt
-python -m pytest -q
-python -m web --offline           # opens on http://localhost:8000, shows a sample scoreboard
-```
+Part D (lockdown) and Part E (remove everything) are optional extras at the end.
 
-The offline scoreboard is invented sample data, and the page says so. It cannot send messages or run attacks.
+**How to read the commands.** Every command is typed into a terminal that is open in the project folder (the folder that contains this README). On Windows, that is PowerShell. The commands start with `.venv\Scripts\python.exe`, which is the project's own copy of Python. Always use it, instead of plain `python`, because a global Python usually has an older `boto3` that cannot talk to AgentCore. On macOS or Linux, write `.venv/bin/python` instead.
 
-### 2. Deploy
+### Part A: Look around without AWS
 
-```
-python scripts/build.py           # writes dist/agent.zip and dist/tools/*.zip (arm64 wheels via uv, no Docker)
-cd infra
-terraform init
-terraform plan                    # read it: about 47 resources (48 with a budget)
-terraform apply
-```
+You need Python 3.12 or newer. You do not need an AWS account.
 
-Region is `us-east-1` and the model is `amazon.nova-lite-v1:0`; both are Terraform variables.
+1. Create the project's Python environment. Do this once.
+   ```
+   python -m venv .venv
+   .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+   ```
+2. Start the web page in offline mode.
+   ```
+   .venv\Scripts\python.exe -m web --offline
+   ```
+3. Open http://localhost:8000/ in your browser.
+4. Click the **Scoreboard** tab, choose **Sample data** in the "saved run" box and press **Open**.
+5. Press Ctrl+C in the terminal to stop.
 
-To get a spending alert, add `-var budget_alert_email=you@example.com`, or put `budget_alert_email = "you@example.com"` in `infra/terraform.tfvars`. That file is git-ignored, so your address stays out of the repository. The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, and `bedrock-agentcore:InvokeGateway` on the guarded gateway. Policy creation validates the Cedar against the live gateway.
+Offline mode shows invented sample data, and the page says so. It cannot send messages or run attacks, because there is no agent to talk to.
 
-### 3. Attack it
+### Part B: Put the agent in AWS (once)
 
-Run every command below from the project's virtual environment (`.venv\Scripts\activate`, or call `.venv\Scripts\python.exe` directly). A global Python usually has an older `boto3` that does not know the `bedrock-agentcore` service, and the tools stop with a message saying so.
-
-The stack deploys in **demo mode** by default, so all four profiles work. There is an optional **lockdown** that serves only the fully defended `policy` profile. Use it if other people or roles in the account can call the agent:
-
-```
-python scripts/mode.py lock       # only the policy profile (runs terraform apply; shows a plan and asks first)
-python scripts/mode.py demo       # all four profiles on
-python scripts/mode.py status
-```
-
-Run `python scripts/build.py` once before using `mode.py`, because Terraform compares the build output with what is deployed. A plain `terraform apply` returns to demo mode, because that is the default.
+You need these installed: Terraform, [uv](https://docs.astral.sh/uv/), and the AWS CLI. You also need AWS credentials for a **sandbox** account. Check that they work:
 
 ```
-python -m redteam list
-python -m redteam run --quick                   # 8 attacks x 4 profiles x 3 repeats
-python -m redteam run --profiles none,policy --repeats 5
-python -m redteam show results/<file>.json
-python -m web                                   # same thing in the browser, plus a chat box
+aws sts get-caller-identity
 ```
 
-The runner reads settings from `terraform output`, or from `DEMO_RUNTIME_ARN`, `DEMO_SINK_TABLE` and `DEMO_REGION`.
-
-### 4. Tear down
+If that prints an account number, you are ready. Then run these four commands, in order:
 
 ```
-cd infra
-terraform destroy
+.venv\Scripts\python.exe scripts\build.py
+terraform -chdir=infra init
+terraform -chdir=infra plan
+terraform -chdir=infra apply
 ```
+
+- `build.py` packages the agent and the four tools into the `dist` folder. It needs `uv`. It must run before `terraform`, because Terraform uploads those files.
+- `plan` only shows what will be created. It changes nothing. Expect about 47 resources.
+- `apply` creates everything. It shows the plan again and waits. Type `yes` to continue. It takes roughly 5 to 10 minutes.
+
+When it finishes, check that it worked:
+
+```
+.venv\Scripts\python.exe scripts\mode.py status
+```
+
+It should print `Current mode: demo (weak profiles ON)`. That means all four defense profiles are available.
+
+You do **not** repeat Part B each time you use the demo. The agent stays in AWS until you remove it (Part E).
+
+Notes on Part B:
+- Region is `us-east-1` and the model is `amazon.nova-lite-v1:0`. Both are Terraform variables.
+- **Spending alert (recommended).** Create a file named `infra/terraform.tfvars` containing one line, `budget_alert_email = "you@example.com"`, before you run `plan`. Terraform then creates a $10 monthly budget that emails you. Git ignores that file, so your address stays out of the repository.
+- The identity running Terraform needs more than the usual create permissions: `s3:GetObject` on the code bucket the config creates, `bedrock-agentcore:InvokeGateway` on the guarded gateway (policy creation validates against the live gateway), and `budgets:ModifyBudget` and `budgets:ViewBudget` if you use the spending alert.
+- Terraform keeps its record of what it built in `infra/terraform.tfstate`. Keep that file, and run Part C from this same folder, because the web page reads it to find your agent.
+
+### Part C: Use the demo (each time)
+
+The agent is already in AWS. This part starts the web page on your laptop, which talks to it.
+
+1. Start the web page.
+   ```
+   .venv\Scripts\python.exe -m web
+   ```
+   The terminal prints `Demo page: http://localhost:8000/   [connected to AWS]`.
+2. Open http://localhost:8000/ in your browser.
+3. Use the page:
+   - **Try it:** pick a defense profile card, then either choose a prepared message from the dropdown or type your own, and press **Send**. You see the reply, which layer stepped in, and what the tools actually did.
+   - **Scoreboard:** press **Run** to attack all four profiles and see a table of results. The quick set is 96 runs and takes several minutes. You can also open a saved run.
+   - **How it works:** a plain-language summary of the layers.
+4. When you are done, press Ctrl+C in the terminal.
+
+No browser? You can run the same attacks from the terminal:
+
+```
+.venv\Scripts\python.exe -m redteam list
+.venv\Scripts\python.exe -m redteam run --quick
+```
+
+If something goes wrong:
+
+| What you see | What it means | What to do |
+|---|---|---|
+| `boto3 ... is too old to know the bedrock-agentcore service` | You used a different Python | Use `.venv\Scripts\python.exe` exactly as written |
+| `Nothing is deployed yet` | Terraform has no record of an agent | Do Part B, and run from the folder where you ran `apply` |
+| `terraform is not installed` | The page cannot find Terraform | Install it, or set `DEMO_RUNTIME_ARN`, `DEMO_SINK_TABLE` and `DEMO_REGION` |
+| The page says a profile is "switched off" | Lockdown is on | Run `.venv\Scripts\python.exe scripts\mode.py demo` (see Part D) |
+| The port is busy | Something else is using port 8000 | Add `--port 8001` to the command and open `http://localhost:8001/` |
+| An `Unable to locate credentials` or access error | Your AWS login is missing or expired | Sign in again, then retry |
+
+### Part D: Lockdown (optional)
+
+You do not need this. It is a switch on the agent that is already deployed. It is not a second deployment.
+
+- **Demo mode** (the default): all four defense profiles work. This is what you want for a presentation.
+- **Lockdown:** the agent serves only the fully defended `policy` profile and refuses the other three. Use it if other people or roles in your AWS account can call the agent.
+
+```
+.venv\Scripts\python.exe scripts\mode.py status
+.venv\Scripts\python.exe scripts\mode.py lock
+.venv\Scripts\python.exe scripts\mode.py demo
+```
+
+`lock` and `demo` each run `terraform apply` with one setting changed. Terraform shows a short plan and asks you to type `yes`. It changes a few settings on the existing agent, takes about a minute, and destroys nothing. Run `build.py` at least once beforehand, because Terraform compares the `dist` folder with what is deployed. A plain `terraform apply` always returns to demo mode, because that is the default.
+
+### Part E: Remove everything
+
+```
+terraform -chdir=infra destroy
+```
+
+It lists what it will delete and asks you to type `yes`. It removes the agent, gateways, functions, database and budget. Run it when you are finished with the project. The stack costs little while idle but not nothing.
 
 ## Cost
 
@@ -129,7 +195,7 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 
 **Know about these**
 
-- **Lockdown** (`var.lockdown`, off by default) makes the deployment serve only the fully defended profile. The agent refuses the `none`, `guardrail` and `isolation` profiles, and the runtime role loses permission to call the unguarded `open` gateway. Switch it with `python scripts/mode.py lock|demo`.
+- **Lockdown** (`var.lockdown`, off by default) makes the deployment serve only the fully defended profile. The agent refuses the `none`, `guardrail` and `isolation` profiles, and the runtime role loses permission to call the unguarded `open` gateway. Switch it with `.venv\Scripts\python.exe scripts\mode.py lock` or `... demo` (see Part D).
 - Lockdown gives little protection on its own. Calling the runtime already requires AWS IAM credentials with `bedrock-agentcore:InvokeAgentRuntime`, so outsiders are blocked either way, and anyone holding your admin credentials can switch it off. It only limits what other identities you have granted access to can do. It does not cap spend (use the budget alert), and it does not stop direct calls to the open gateway by an identity with `bedrock-agentcore:InvokeGateway`.
 - The `open` gateway has no policy engine on purpose. In demo mode the runtime role can call it. The tools are simulated, so the worst outcome is rows in the sink table. Run `terraform destroy` when you finish.
 - Both gateways use `exception_level = "DEBUG"`, which returns detailed errors to callers. Production gateways should not.
