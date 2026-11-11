@@ -2,7 +2,7 @@
 
 ## Before the session
 
-Type every command in a terminal open in the project folder. The setup steps are in the README's Quick start (Part B to deploy once, Part C to start the page).
+Type every command in a terminal open in the project folder. The setup steps are in the README's Quick start (Part 0 to set up your computer, Part B to deploy once, Part C to start the page).
 
 - Check `.venv\Scripts\python.exe scripts\mode.py status`. It should say demo mode, so all four profiles work. If it says lockdown, run `.venv\Scripts\python.exe scripts\mode.py demo` first.
 - Deploy the stack a day ahead and run `.venv\Scripts\python.exe -m redteam run --quick` once, so the first live run is not the first run ever. Check the "gateway_policy" and "tool_result_screen" events show up on the policy attacks. If they do not, fix that before presenting.

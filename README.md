@@ -48,45 +48,59 @@ tests/       Unit tests; none need AWS credentials
 
 ## Quick start
 
-There are three things you can do. Pick the one that matches where you are.
+**Everyone starts with Part 0.** Then pick what you want to do.
 
 | I want to... | Do this |
 |---|---|
-| Look around without an AWS account | **Part A** (about 5 minutes) |
-| Put the agent in AWS | **Part B** (do this once) |
-| Use the demo in my browser | **Part C** (do this each time) |
+| Set up my computer (everyone, once) | **Part 0** (about 5 minutes) |
+| Look around without an AWS account | **Part A** |
+| Put the agent in AWS | **Part B** (once) |
+| Use the demo in my browser | **Part C** (each time) |
 
 Part D (lockdown) and Part E (remove everything) are optional extras at the end.
 
 **How to read the commands.** Every command is typed into a terminal that is open in the project folder (the folder that contains this README). On Windows, that is PowerShell. The commands start with `.venv\Scripts\python.exe`, which is the project's own copy of Python. Always use it, instead of plain `python`, because a global Python usually has an older `boto3` that cannot talk to AgentCore. On macOS or Linux, write `.venv/bin/python` instead.
 
-### Part A: Look around without AWS
+### Part 0: Set up your computer (everyone, once)
 
-You need Python 3.12 or newer. You do not need an AWS account.
+Everything else in this README needs this part. If a folder named `.venv` already exists in the project, you have done it, so skip to the next part.
 
-1. Create the project's Python environment. Do this once.
+1. Check that you have Python 3.12 or newer.
+   ```
+   python --version
+   ```
+   It should print `Python 3.12` or higher. If it does not, install Python 3.12 first. This project was built and tested on Python 3.12. Newer versions have not been tested.
+2. Create the project's own Python environment. This is the one command that uses plain `python`.
    ```
    python -m venv .venv
+   ```
+3. Install what the project needs into it. This takes a few minutes.
+   ```
    .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
    ```
-2. Check that everything works (optional, takes a few seconds).
+4. Optional: check that everything works. It takes a few seconds and does not touch AWS.
    ```
    .venv\Scripts\python.exe -m pytest
    ```
-   This runs the project's automated tests. It does not touch AWS. A row of dots and a final line like `... passed in ... s` means success. An `F` means a test failed, and the details are printed below it.
-3. Start the web page in offline mode.
+   This runs the project's automated tests. A row of dots and a final line like `... passed in ... s` means success. An `F` means a test failed, and the details are printed below it. You never need to run this to use the demo.
+
+### Part A: Look around without AWS
+
+You do not need an AWS account for this part, but you must have done Part 0.
+
+1. Start the web page in offline mode.
    ```
    .venv\Scripts\python.exe -m web --offline
    ```
-4. Open http://localhost:8000/ in your browser.
-5. Click the **Scoreboard** tab, choose **Sample data** in the "saved run" box and press **Open**.
-6. Press Ctrl+C in the terminal to stop.
+2. Open http://localhost:8000/ in your browser.
+3. Click the **Scoreboard** tab, choose **Sample data** in the "saved run" box and press **Open**.
+4. Press Ctrl+C in the terminal to stop.
 
 Offline mode shows invented sample data, and the page says so. It cannot send messages or run attacks, because there is no agent to talk to.
 
 ### Part B: Put the agent in AWS (once)
 
-You need these installed: Terraform, [uv](https://docs.astral.sh/uv/), and the AWS CLI. You also need AWS credentials for a **sandbox** account. Check that they work:
+Do Part 0 first. You also need these installed: Terraform, [uv](https://docs.astral.sh/uv/), and the AWS CLI. You need AWS credentials for a **sandbox** account. Check that they work:
 
 ```
 aws sts get-caller-identity
@@ -123,7 +137,7 @@ Notes on Part B:
 
 ### Part C: Use the demo (each time)
 
-The agent is already in AWS. This part starts the web page on your laptop, which talks to it.
+This needs Part 0 done and the agent deployed (Part B). The agent stays in AWS. This part starts the web page on your laptop, which talks to it.
 
 1. Start the web page.
    ```
@@ -220,7 +234,7 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 
 Verified locally (CI runs the same checks):
 
-- Unit tests (run them yourself in Part A), including the Cedar policies run through a real Cedar engine (`cedarpy`), the oracles, the runner, the report and the web server.
+- Unit tests (run them yourself in Part 0), including the Cedar policies run through a real Cedar engine (`cedarpy`), the oracles, the runner, the report and the web server.
 - `terraform fmt`, `validate`, and a `plan` that adds 47 resources (48 with a budget).
 - The deployment zips are built for arm64 and contain the expected native libraries.
 - Nova Lite was called live to confirm it makes a correct tool call, and attack behavior was measured with a local copy of the agent (not the deployed one).
