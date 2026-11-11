@@ -69,13 +69,18 @@ You need Python 3.12 or newer. You do not need an AWS account.
    python -m venv .venv
    .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
    ```
-2. Start the web page in offline mode.
+2. Check that everything works (optional, takes a few seconds).
+   ```
+   .venv\Scripts\python.exe -m pytest
+   ```
+   This runs the project's automated tests. It does not touch AWS. A row of dots and a final line like `... passed in ... s` means success. An `F` means a test failed, and the details are printed below it.
+3. Start the web page in offline mode.
    ```
    .venv\Scripts\python.exe -m web --offline
    ```
-3. Open http://localhost:8000/ in your browser.
-4. Click the **Scoreboard** tab, choose **Sample data** in the "saved run" box and press **Open**.
-5. Press Ctrl+C in the terminal to stop.
+4. Open http://localhost:8000/ in your browser.
+5. Click the **Scoreboard** tab, choose **Sample data** in the "saved run" box and press **Open**.
+6. Press Ctrl+C in the terminal to stop.
 
 Offline mode shows invented sample data, and the page says so. It cannot send messages or run attacks, because there is no agent to talk to.
 
@@ -215,7 +220,7 @@ Already done in the Terraform: the runtime role may invoke only the model in `va
 
 Verified locally (CI runs the same checks):
 
-- Unit tests, including the Cedar policies run through a real Cedar engine (`cedarpy`), the oracles, the runner, the report and the web server.
+- Unit tests (run them yourself in Part A), including the Cedar policies run through a real Cedar engine (`cedarpy`), the oracles, the runner, the report and the web server.
 - `terraform fmt`, `validate`, and a `plan` that adds 47 resources (48 with a budget).
 - The deployment zips are built for arm64 and contain the expected native libraries.
 - Nova Lite was called live to confirm it makes a correct tool call, and attack behavior was measured with a local copy of the agent (not the deployed one).
