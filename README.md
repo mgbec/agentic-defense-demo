@@ -264,6 +264,57 @@ Verified on a real deployment (us-east-1, one run of the stack):
 - The data and side effects are simulated.
 - The email policy rejects lists and stray separators, but it is a demonstration, not a complete exfiltration control.
 
+## Related tools
+
+This project does not use any of these. Each is worth knowing about, and the table says how it differs from what is here.
+
+**Red-team and testing tools**
+
+| Tool | What it is | How it differs from this project's suite |
+|---|---|---|
+| [Promptfoo](https://www.promptfoo.dev/) | Open-source testing for LLM apps. Its red-team mode uses a model to generate many attacks, and a model to grade the replies | Broad and automatic, but it judges text with another model. This suite scores real tool actions with fixed checks |
+| [Garak](https://github.com/NVIDIA/garak) | NVIDIA's open-source scanner. It fires collections of known attacks (jailbreaks, prompt injection, leakage) at a chat endpoint | Wide coverage of known attacks against a text interface. It does not know what your agent's tools did |
+| [PyRIT](https://github.com/Azure/PyRIT) | Microsoft's framework for automating red-team campaigns, including multi-turn conversations | More flexible and more work to set up. This suite is single-turn |
+| [DeepTeam](https://github.com/confident-ai/deepteam) | Open-source red-teaming framework with many prebuilt vulnerability types | Another broad generator, scored mostly by model-based graders |
+| [AgentDojo](https://github.com/ethz-spylab/agentdojo) | A research benchmark for prompt injection against tool-using agents | Closest in spirit. It is a benchmark with its own agents and tasks, so results do not describe this deployment |
+
+**Defensive tools**
+
+[LLM Guard](https://github.com/protectai/llm-guard), [Microsoft Presidio](https://microsoft.github.io/presidio/), [NeMo Guardrails](https://github.com/NVIDIA/NeMo-Guardrails) and [Llama Guard](https://www.llama.com/) can filter prompts and replies, find PII, or classify unsafe content. They could stand in for, or sit beside, Bedrock Guardrails. I left them out on purpose (see below). I have not compared their detection quality with Bedrock Guardrails in this project, so this README makes no claim about which is better.
+
+An earlier, larger version of this project used Promptfoo, Garak, LLM Guard and Presidio behind a custom gateway. It is archived at [Defense-In-Depth-for-LLM-and-Agentic-Workflows](https://github.com/mgbec/Defense-In-Depth-for-LLM-and-Agentic-Workflows). It was dropped for the reasons in the next section.
+
+## Why it is kept simple
+
+This is built to be shown to a room of developers and security people, then run again by someone else. That goal drove a few choices:
+
+- **Few moving parts.** One agent, four tools, four profiles. Everyone in the room can hold the whole thing in their head. The earlier version had self-hosted ML models in container images, and that was where most of its complexity and fragility came from.
+- **One managed guardrail.** Bedrock Guardrails is a single API call with no image to build or host. It covers prompt-attack detection, content filters and PII masking, which is what the demo needs.
+- **No Docker.** The agent deploys as a zip, so a laptop without a container daemon can deploy it.
+- **Scores you can trust.** Outcomes come from what the tools recorded, not from another model's opinion, so the same run gives the same verdict and nobody has to wonder if the judge was fooled.
+- **A small, readable attack set.** Fourteen attacks, each with a prediction written beforehand. A group can read all of them in a few minutes. A broad scanner produces thousands of results that nobody reviews live.
+- **Safe to attack.** The tools are simulated, so a demo can never email a real person or move real money.
+- **Honest about limits.** A small, single-turn suite shows how layers interact. It does not prove an agent is safe, and the README says so.
+
+Adding more would make the demo more thorough and harder to explain, to run and to trust. That trade-off is the reason, not a lack of options.
+
+## Ideas for later
+
+These are ideas, not promises, and none is built. Roughly from most to least useful:
+
+1. **Make the caller's identity matter.** Today the agent looks up any customer id it is given, and the policy has no idea who is asking. Add inbound authentication (for example Cognito or another JWT provider) and write Cedar rules like "a customer may only read their own record". This is the most realistic gap, because "confused deputy" problems are common in real agents.
+2. **A bigger attack set from other tools.** Run Garak or Promptfoo-generated attacks against the agent, and score them with the sink, keeping the deterministic judging. This adds coverage I did not think of.
+3. **Multi-turn and memory attacks.** Attacks that build up over a conversation, or that poison what the agent remembers, are not covered at all.
+4. **Better statistics.** More repeats per cell, confidence intervals on the rates, and a clear flag when the sample is too small to compare two profiles.
+5. **Compare models.** Run the same suite against other Bedrock models (a larger Nova, or Claude) and see which gaps close and which do not.
+6. **A human approval step.** For refunds above the limit, route to a person instead of only denying, and measure how often the approval path is itself abused.
+7. **Scheduled regression runs.** Run the quick set on a schedule in CI against a test stack, fail if a defense regresses, and open an issue. The earlier version had this.
+8. **Stronger isolation.** Run the agent in VPC mode with limited egress so a hijacked agent cannot reach the internet, and add a check on outbound data.
+9. **Richer policy.** Rate limits, per-customer refund budgets, and alerts on repeated denials.
+10. **Observability.** A dashboard of denials and interventions over time, built from the traces the agent already records.
+11. **Guardrails STANDARD tier.** It needs cross-region inference, which is a data-residency decision, so it is a deliberate choice rather than a default.
+12. **A side-by-side defensive comparison.** Swap Bedrock Guardrails for LLM Guard, Presidio or NeMo Guardrails behind the same interface and measure the difference on this suite. That is the evidence I do not have today.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
